@@ -20,7 +20,7 @@ const Navbar = ({ address, onConnectClick }: { address: string | null, onConnect
         <img 
           src="https://github.com/978893422-netizen/my-assets/blob/main/logo.png?raw=true" 
           alt="HerGenesis" 
-          className="h-8 object-contain"
+          className="h-6 object-contain"
         />
       </div>
       <Button 
@@ -121,22 +121,64 @@ export default function App() {
   };
 
   // Called when a wallet is selected from the modal
-  const handleWalletSelect = (walletName: string) => {
+  const handleWalletSelect = async (walletId: string) => {
     setIsWalletModalOpen(false);
     
-    // Simulate connection delay
+    let connectedAddress: string | null = null;
+    const provider = (window as any).ethereum;
+
+    // 1. Attempt Real Connection if supported wallet
+    if (['metamask', 'onekey', 'rainbow'].includes(walletId) && provider) {
+      try {
+        const accounts = await provider.request({ method: 'eth_requestAccounts' });
+        if (accounts && accounts.length > 0) {
+          connectedAddress = accounts[0];
+        }
+      } catch (error: any) {
+        console.error("Connection cancelled or failed", error);
+        // If user actively rejected, we stop.
+        if (error.code === 4001) {
+          showToast("Connection rejected by user", 'error');
+          return;
+        }
+        // For other errors, we might fall through to mock or show error.
+      }
+    }
+
+    // 2. Success - Set Address
+    if (connectedAddress) {
+      setWalletAddress(connectedAddress);
+      showToast("Wallet connected successfully!", 'success');
+      executePendingAction();
+      return;
+    }
+
+    // 3. Fallback / Mock Simulation 
+    // (If provider missing or walletConnect selected, or simple demo mode)
+    console.log("Using mock connection fallback");
     setTimeout(() => {
       setWalletAddress('0x71C...3A92');
-      showToast(`${walletName} connected successfully!`, 'success');
       
-      // Execute pending action if exists
-      if (pendingAction) {
-        if (pendingAction.type === 'mint') {
-          processMint(pendingAction.species, pendingAction.isFree);
-        }
-        setPendingAction(null);
-      }
+      const nameMap: {[key: string]: string} = { 
+        metamask: 'MetaMask', 
+        onekey: 'OneKey', 
+        rainbow: 'Rainbow', 
+        walletconnect: 'WalletConnect' 
+      };
+      const displayName = nameMap[walletId] || 'Wallet';
+      
+      showToast(`${displayName} connected successfully!`, 'success');
+      executePendingAction();
     }, 500);
+  };
+
+  const executePendingAction = () => {
+    if (pendingAction) {
+      if (pendingAction.type === 'mint') {
+        processMint(pendingAction.species, pendingAction.isFree);
+      }
+      setPendingAction(null);
+    }
   };
 
   // Initiate Mint (Check wallet -> Open Modal or Process)

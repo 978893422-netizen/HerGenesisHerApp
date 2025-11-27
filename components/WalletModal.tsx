@@ -4,7 +4,7 @@ import { X, Wallet, Shield, Zap, Globe } from 'lucide-react';
 interface WalletModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (walletName: string) => void;
+  onSelect: (walletId: string) => void;
 }
 
 export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose, onSelect }) => {
@@ -57,7 +57,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose, onSel
           {wallets.map((wallet) => (
             <button
               key={wallet.id}
-              onClick={() => onSelect(wallet.name)}
+              onClick={() => onSelect(wallet.id)}
               className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.02] active:scale-95 ${wallet.color} border-transparent hover:border-current hover:bg-white hover:shadow-md`}
             >
               <div className="bg-white p-2 rounded-xl shadow-sm">
