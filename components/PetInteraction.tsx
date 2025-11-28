@@ -94,10 +94,10 @@ export const PetInteraction: React.FC<PetInteractionProps> = ({ pet, onUpdatePet
       onNotify(`🎉 LEVEL UP! ${pet.name} is now an Adult!`, 'success');
     } else if (pet.stage === GrowthStage.ADULT && minStat >= GAME_RULES.thresholds[GrowthStage.BREEDING]) {
       newStage = GrowthStage.BREEDING;
-      onNotify(`🥚 BREEDING UNLOCKED! Population expands!`, 'success');
+      onNotify(`🥚 BREEDING UNLOCKED! Platform species count +2!`, 'success');
     } else if (pet.stage === GrowthStage.BREEDING && minStat >= GAME_RULES.thresholds[GrowthStage.RE_BREEDING]) {
       newStage = GrowthStage.RE_BREEDING;
-      onNotify(`👑 LEGENDARY STATUS! ${pet.name} is a Matriarch!`, 'success');
+      onNotify(`👑 MATRIARCH STATUS! Species count +2!`, 'success');
     }
 
     onUpdatePet({

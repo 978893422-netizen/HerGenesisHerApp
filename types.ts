@@ -43,3 +43,15 @@ export interface PopulationData {
   Thylacine: number;
   IrishElk: number;
 }
+
+// Add support for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+      request: (args: { method: string; params?: any[] | object }) => Promise<any>;
+      on?: (eventName: string, handler: (...args: any[]) => void) => void;
+      removeListener?: (eventName: string, handler: (...args: any[]) => void) => void;
+    };
+  }
+}

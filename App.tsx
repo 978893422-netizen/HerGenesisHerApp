@@ -124,52 +124,33 @@ export default function App() {
   const handleWalletSelect = async (walletId: string) => {
     setIsWalletModalOpen(false);
     
-    let connectedAddress: string | null = null;
-    const provider = (window as any).ethereum;
-
-    // 1. Attempt Real Connection if supported wallet
-    if (['metamask', 'onekey', 'rainbow'].includes(walletId) && provider) {
-      try {
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) {
-          connectedAddress = accounts[0];
-        }
-      } catch (error: any) {
-        console.error("Connection cancelled or failed", error);
-        // If user actively rejected, we stop.
-        if (error.code === 4001) {
-          showToast("Connection rejected by user", 'error');
-          return;
-        }
-        // For other errors, we might fall through to mock or show error.
-      }
-    }
-
-    // 2. Success - Set Address
-    if (connectedAddress) {
-      setWalletAddress(connectedAddress);
-      showToast("Wallet connected successfully!", 'success');
-      executePendingAction();
+    // Check if Ethereum provider exists
+    if (typeof window.ethereum === 'undefined') {
+      showToast("No wallet extension found. Please install MetaMask or OneKey.", 'error');
+      // Fallback for demo/dev purposes if desired, or just return
       return;
     }
 
-    // 3. Fallback / Mock Simulation 
-    // (If provider missing or walletConnect selected, or simple demo mode)
-    console.log("Using mock connection fallback");
-    setTimeout(() => {
-      setWalletAddress('0x71C...3A92');
+    try {
+      // 1. Request Account Access from the Wallet Plugin
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       
-      const nameMap: {[key: string]: string} = { 
-        metamask: 'MetaMask', 
-        onekey: 'OneKey', 
-        rainbow: 'Rainbow', 
-        walletconnect: 'WalletConnect' 
-      };
-      const displayName = nameMap[walletId] || 'Wallet';
-      
-      showToast(`${displayName} connected successfully!`, 'success');
-      executePendingAction();
-    }, 500);
+      if (accounts && accounts.length > 0) {
+        const address = accounts[0];
+        setWalletAddress(address);
+        showToast("Wallet connected successfully!", 'success');
+        executePendingAction();
+      } else {
+        showToast("No accounts found.", 'error');
+      }
+    } catch (error: any) {
+      console.error("Connection error:", error);
+      if (error.code === 4001) {
+        showToast("Connection rejected by user", 'error');
+      } else {
+        showToast("Failed to connect wallet.", 'error');
+      }
+    }
   };
 
   const executePendingAction = () => {
@@ -191,8 +172,50 @@ export default function App() {
     processMint(species, isFree);
   };
 
-  // Actual Mint Logic
-  const processMint = (species: Species, isFree: boolean) => {
+  // Actual Mint Logic (Includes Payment)
+  const processMint = async (species: Species, isFree: boolean) => {
+    if (!isFree) {
+      // Handle Payment Logic for Paid Mint
+      if (typeof window.ethereum === 'undefined' || !walletAddress) {
+        showToast("Wallet not connected", 'error');
+        return;
+      }
+
+      try {
+        // 0.001 ETH in Hex (Wei) -> 1000000000000000 Wei -> 0x38d7ea4c68000
+        // We'll send this to a dummy treasury address or the user's own address for testing safety
+        const TREASURY_ADDRESS = "0x000000000000000000000000000000000000dEaD"; 
+        const amountHex = "0x38d7ea4c68000"; // 0.001 ETH
+
+        showToast("Please confirm transaction in your wallet...", 'info');
+
+        const txHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: walletAddress,
+              to: TREASURY_ADDRESS,
+              value: amountHex,
+              // gas: '0x5208', // 21000 Gwei (optional, let wallet estimate)
+            },
+          ],
+        });
+
+        console.log("Transaction sent:", txHash);
+        showToast("Transaction submitted! Minting species...", 'success');
+
+      } catch (error: any) {
+        console.error("Payment failed:", error);
+        if (error.code === 4001) {
+          showToast("Transaction rejected.", 'error');
+        } else {
+          showToast("Transaction failed.", 'error');
+        }
+        return; // Stop minting process if payment fails
+      }
+    }
+
+    // Proceed to create pet state only if payment succeeded (or is free)
     const newPet: Pet = {
       id: Math.random().toString(36).substr(2, 9),
       speciesId: species.id,
@@ -200,12 +223,12 @@ export default function App() {
       stage: GrowthStage.JUVENILE,
       mintDate: Date.now(),
       metadata: {
-        saturation: 50,
-        intimacy: 20,
-        health: 100,
-        lastFedAt: Date.now() - 3600000,
-        lastPettedAt: Date.now() - 3600000,
-        lastCleanedAt: Date.now() - 3600000,
+        saturation: 0,
+        intimacy: 0,
+        health: 0,
+        lastFedAt: 0,
+        lastPettedAt: 0,
+        lastCleanedAt: 0,
       }
     };
 
